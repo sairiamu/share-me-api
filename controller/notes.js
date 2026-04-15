@@ -23,8 +23,8 @@ export const uploadNoteHandler = [
       res.json({
         success: true,
         message: 'Note uploaded successfully',
-        noteId: result.insertId,
-        fileUrl: result.secure_url
+        noteId: result.id,
+        fileUrl: result.file_url
       });
     } catch (err) {
       // Clean up temp file on error
@@ -47,14 +47,14 @@ export const getNotesHandler = [
       const sql = `
         SELECT id, title, file_url, file_type, created_at
         FROM notes
-        WHERE uploaded_by = ?
+        WHERE uploaded_by = $1
         ORDER BY created_at DESC
       `;
-      const [rows] = await pool.execute(sql, [req.user.email]);
+      const result = await pool.query(sql, [req.user.email]);
 
       res.json({
         success: true,
-        notes: rows
+        notes: result.rows
       });
     } catch (err) {
       console.error('Get notes error:', err);
@@ -75,18 +75,18 @@ export const getNoteHandler = [
       const sql = `
         SELECT id, title, file_url, file_type, uploaded_by, created_at
         FROM notes
-        WHERE id = ? LIMIT 1
+        WHERE id = $1 LIMIT 1
       `;
-      const [rows] = await pool.execute(sql, [id]);
+      const result = await pool.query(sql, [id]);
 
-      if (rows.length === 0) {
+      if (result.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Note not found'
         });
       }
 
-      const note = rows[0];
+      const note = result.rows[0];
 
       // Check ownership
       if (note.uploaded_by !== req.user.email) {
@@ -117,17 +117,17 @@ export const deleteNoteHandler = [
       const { id } = req.params;
 
       // First check ownership
-      const checkSql = `SELECT uploaded_by FROM notes WHERE id = ?`;
-      const [checkRows] = await pool.execute(checkSql, [id]);
+      const checkSql = `SELECT uploaded_by FROM notes WHERE id = $1`;
+      const checkResult = await pool.query(checkSql, [id]);
 
-      if (checkRows.length === 0) {
+      if (checkResult.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Note not found'
         });
       }
 
-      if (checkRows[0].uploaded_by !== req.user.email) {
+      if (checkResult.rows[0].uploaded_by !== req.user.email) {
         return res.status(403).json({
           success: false,
           message: 'Access denied'
@@ -135,8 +135,8 @@ export const deleteNoteHandler = [
       }
 
       // Delete from DB
-      const deleteSql = `DELETE FROM notes WHERE id = ?`;
-      await pool.execute(deleteSql, [id]);
+      const deleteSql = `DELETE FROM notes WHERE id = $1`;
+      await pool.query(deleteSql, [id]);
 
       res.json({
         success: true,

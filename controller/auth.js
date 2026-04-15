@@ -24,17 +24,18 @@ export const signupHandler = async (req, res) => {
         // Insert user into DB
         const sql = `
             INSERT INTO users (email, name, password, phone)
-            VALUES (?, ?, ?, ?)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
         `;
-        const [result] = await pool.execute(sql, [email, name, hashedPassword, phone]);
+        const result = await pool.query(sql, [email, name, hashedPassword, phone]);
 
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
-            userId: result.insertId
+            userId: result.rows[0].id
         });
     } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
+        if (err.code === '23505') { // PostgreSQL unique violation
             return res.status(409).json({
                 success: false,
                 message: 'Email already exists'
@@ -62,17 +63,17 @@ export const signinHandler = async (req, res) => {
         const { email, password } = validation.data;
 
         // Lookup user
-        const sql = `SELECT * FROM users WHERE email = ?`;
-        const [rows] = await pool.execute(sql, [email]);
+        const sql = `SELECT * FROM users WHERE email = $1`;
+        const result = await pool.query(sql, [email]);
 
-        if (rows.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
             });
         }
 
-        const user = rows[0];
+        const user = result.rows[0];
 
         // Compare password
         const isValidPassword = ComparePassword(password, user.password);
