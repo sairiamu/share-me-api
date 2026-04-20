@@ -21,7 +21,7 @@ const app = express();
 // Helmet - Set security HTTP headers
 app.use(helmet());
 
-app.get('/', (req, res) => res.json({ status: 'ok', service: 'share-me-api' }));
+//app.get('/', (req, res) => res.json({ status: 'ok', service: 'share-me-api' }));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 app.get('/favicon.png',  (req, res) => res.status(204).end());
 // CORS - Allow cross-origin requests
@@ -100,6 +100,5 @@ process.on('SIGTERM', () => {
     });
 });
 
-const server = app.listen(PORT, () => {
-    logger.info(`Server Running at port : ${PORT}`);
-});
+// 
+export default app;
