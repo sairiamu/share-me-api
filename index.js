@@ -100,5 +100,10 @@ process.on('SIGTERM', () => {
     });
 });
 
+// ========== START SERVER ==========
+const server = app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+});
+
 // 
-export default app;
+//export default app;
